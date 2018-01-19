@@ -43,7 +43,8 @@ def get_tx_data(tx_hash):
 
         for i in range(0, THREADS_NO * 10):
             tx = requests.get(url=tx_url).text
-            if tx[0] != '<':
+            # Retry if the response is an HTML/plain text error message
+            if tx[0] != '<' and tx[0] != 'M':
                 break
             else:
                 tx = None
