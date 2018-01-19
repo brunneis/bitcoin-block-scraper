@@ -12,12 +12,12 @@ from concurrent.futures import ThreadPoolExecutor
 
 THREADS_NO = 8
 
-def get_block_url(block_index):
-    return f'https://blockchain.info/block-index/{block_index}?format=json'
+def get_block_url(block_index, format='json'):
+    return f'https://blockchain.info/block-index/{block_index}?format={format}'
 
-def get_block_data(block_index):
+def get_block_data(block_index, format='json'):
     try:
-        block_url = get_block_url(block_index)
+        block_url = get_block_url(block_index, format)
 
         for i in range(0, 5):
             try:
@@ -26,7 +26,7 @@ def get_block_data(block_index):
                 break
             except json.JSONDecodeError as e:
                 block = None
-                if response.text == 'Block Not Found':
+                if response.text[0] == 'B': # Block not found
                     return None, False
 
         return block, True
@@ -34,17 +34,27 @@ def get_block_data(block_index):
     except requests.exceptions.RequestException as e:
         logging.exception(e)
 
-def get_tx_url(tx_hash):
-    return f'https://blockchain.info/tx/{tx_hash}?format=hex'
+def get_tx_url(tx_hash, format='hex'):
+    return f'https://blockchain.info/tx/{tx_hash}?format={format}'
 
-def get_tx_data(tx_hash):
+def get_tx_data(tx_hash, format='hex'):
     try:
-        tx_url = get_tx_url(tx_hash)
+        tx_url = get_tx_url(tx_hash, format)
 
         for i in range(0, THREADS_NO * 10):
             tx = requests.get(url=tx_url).text
-            # Retry if the response is an HTML/plain text error message
-            if tx[0] != '<' and tx[0] != 'M':
+
+            # Retry if the response is an HTML/plain text error message:
+            # - (<)html>[...]429 Too Many Requests[...]
+            # - (M)aximum concurrent requests[...]
+            # - (T)ransaction not found
+            # - (I)nternal Server Error
+            # - (An) attempt by a client[...]
+            if tx[0] != '<' \
+                and tx[0] != 'M' \
+                and tx[0] != 'T' \
+                and tx[0] != 'I' \
+                and (tx[0] != 'A' and tx[1] != 'n'):
                 break
             else:
                 tx = None
