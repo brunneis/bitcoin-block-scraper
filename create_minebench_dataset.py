@@ -14,8 +14,8 @@ def blocks_to_csv():
     block_files = sorted(os.listdir('./blocks'), key=get_int_name)
     files_no = len(block_files)
     with open(f"./{files_no}_blocks.csv", 'w') as output:
-        output.write("ver,prev_block,time,tx\n")
-
+        # output.write("ver,prev_block,time,tx\n")
+        
         for block_file in tqdm(block_files):
             block = json.load(open(f'./blocks/{block_file}'))
             tx = ':'.join([tx['hex'] for tx in block['tx']])
